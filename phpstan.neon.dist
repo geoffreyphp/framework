@@ -1,0 +1,15 @@
+parameters:
+    level: max
+    paths:
+        - src
+
+    reportUnmatchedIgnoredErrors: true
+
+    ignoreErrors:
+        # forUser() and continue() come from RemembersConversations trait,
+        # not the Agent interface. Without larastan, PHPStan can't see them.
+        -
+            message: '#Call to an undefined method Laravel\\Ai\\Contracts\\Agent::(forUser|continue)\(\)#'
+            paths:
+                - src/Http/AgentController.php
+                - src/Channels/Slack/ProcessSlackEvent.php
