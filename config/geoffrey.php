@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'orchestrator' => \Agents\Orchestrator::class,
+    'orchestrator' => Agents\Orchestrator::class,
 
     /*
     |--------------------------------------------------------------------------
