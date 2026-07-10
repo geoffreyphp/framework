@@ -1,7 +1,6 @@
 {
     "name": "geoffreyphp/framework",
-    "description": "A skeleton repository for my packages",
-    "keywords": ["php", "skeleton", "package"],
+    "description": "Your framework for AI agents.",
     "license": "MIT",
     "authors": [
         {
