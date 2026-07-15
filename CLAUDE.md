@@ -15,7 +15,6 @@ AI agent framework. Provides bootstrap, routing, contracts, base agent, first-pa
 - `src/` — Framework source (`Geoffrey\` namespace)
   - `Contracts/` — Interfaces (Channel, HasSkills)
   - `Channels/` — First-party channel implementations (Slack, etc.)
-  - `Http/` — Controllers (AgentController)
 - `config/geoffrey.php` — Config schema (orchestrator, channels)
 - `database/migrations/` — Conversation table migration
 - `tests/` — Pest tests (`Tests\` namespace)

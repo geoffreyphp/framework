@@ -11,5 +11,4 @@ parameters:
         -
             message: '#Call to an undefined method Laravel\\Ai\\Contracts\\Agent::(forUser|continue)\(\)#'
             paths:
-                - src/Http/AgentController.php
                 - src/Channels/Slack/ProcessSlackEvent.php

@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Geoffrey;
 
-use Geoffrey\Http\AgentController;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Support\Facades\Route;
 
 class Bootstrap
 {
@@ -23,11 +21,9 @@ class Bootstrap
         }
 
         $app = Application::configure(basePath: $basePath)
-            ->withRouting(using: function (): void {
-                Route::post('/agent', [AgentController::class, 'handle']);
-            })
+            ->withRouting()
             ->withMiddleware(function (Middleware $middleware): void {
-                $middleware->validateCsrfTokens(except: ['agent', 'webhooks/*']);
+                $middleware->validateCsrfTokens(except: ['webhooks/*']);
             })
             ->withExceptions(function (Exceptions $exceptions): void {})
             ->create();
