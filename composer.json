@@ -10,7 +10,7 @@
     ],
     "require": {
         "php": "^8.4.0",
-        "laravel/ai": "^0.8.1",
+        "laravel/ai": "^0.9",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0"
     },
