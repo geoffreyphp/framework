@@ -15,8 +15,9 @@ it('has Agents\Orchestrator as the default orchestrator', function (): void {
     expect($config['orchestrator'])->toBe(Orchestrator::class);
 });
 
-it('has empty channels array by default', function (): void {
+it('ships the slack channel example by default', function (): void {
     $config = require __DIR__.'/../config/geoffrey.php';
 
-    expect($config['channels'])->toBe([]);
+    expect($config['channels'])->toHaveKey('slack');
+    expect($config['channels']['slack']['driver'])->toBe('slack');
 });

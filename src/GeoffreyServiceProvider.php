@@ -14,6 +14,7 @@ use Geoffrey\Database\Console\MigrateCommand;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Console\Migrations\MigrateCommand as BaseMigrateCommand;
+use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 
@@ -44,7 +45,12 @@ class GeoffreyServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->extend(BaseMigrateCommand::class, fn (): MigrateCommand => new MigrateCommand($this->app['migrator'], $this->app[Dispatcher::class]));
+        $this->app->alias('migrator', Migrator::class);
+
+        $this->app->extend(BaseMigrateCommand::class, fn (): MigrateCommand => new MigrateCommand(
+            $this->app->make(Migrator::class),
+            $this->app->make(Dispatcher::class),
+        ));
 
         $this->app->make(ChannelManager::class)->extend('slack', Slack::class);
 

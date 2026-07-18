@@ -27,7 +27,7 @@ it('merges the geoffrey config file', function (): void {
     $config = $app->make('config');
 
     expect($config->get('geoffrey'))->toBeArray();
-    expect($config->get('geoffrey.channels'))->toBe([]);
+    expect($config->get('geoffrey.channels'))->toHaveKey('slack');
 });
 
 it('loads migrations from the package migrations directory', function (): void {

@@ -6,7 +6,10 @@ namespace Geoffrey\Database\Console;
 
 class MigrateCommand extends \Illuminate\Database\Console\Migrations\MigrateCommand
 {
-    protected function createMissingSqliteDatabase($path)
+    /**
+     * @param  string  $path
+     */
+    protected function createMissingSqliteDatabase($path): bool
     {
         $directory = dirname($path);
 
