@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Geoffrey\Channels\Slack;
 
+use Geoffrey\Connections\Exceptions\NotConnectedException;
 use Geoffrey\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -60,7 +61,12 @@ class ProcessSlackEvent implements ShouldQueue
             $orchestrator->forUser($user);
         }
 
-        $response = $orchestrator->prompt($text);
+        try {
+            $response = $orchestrator->prompt($text);
+            $replyText = $response->text;
+        } catch (NotConnectedException $e) {
+            $replyText = "Before I can help with that, you need to connect your {$e->connection} account: <{$e->connectUrl}|Connect {$e->connection}>";
+        }
 
         $replyTs = $threadTs ?? $ts;
 
@@ -68,6 +74,6 @@ class ProcessSlackEvent implements ShouldQueue
 
         $http = app(HttpFactory::class);
         $client = new SlackClient($tokenString, $http);
-        $client->postMessage($channelId, $response->text, $replyTs);
+        $client->postMessage($channelId, $replyText, $replyTs);
     }
 }

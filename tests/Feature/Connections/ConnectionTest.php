@@ -270,7 +270,8 @@ it('throws a not connected exception carrying the connect url when no token exis
 
         expect(false)->toBeTrue('Expected a NotConnectedException to be thrown.');
     } catch (NotConnectedException $exception) {
-        expect($exception->connectUrl)->toBe(Connection::get('facade-oauth')->for($user)->connectUrl());
+        expect($exception->connectUrl)->toBe(Connection::get('facade-oauth')->for($user)->connectUrl())
+            ->and($exception->connection)->toBe('facade-oauth');
     }
 });
 
@@ -292,6 +293,7 @@ it('translates an authorization required exception from the client into a not co
 
         expect(false)->toBeTrue('Expected a NotConnectedException to be thrown.');
     } catch (NotConnectedException $exception) {
-        expect($exception->connectUrl)->toBe(Connection::get('facade-oauth')->for($user)->connectUrl());
+        expect($exception->connectUrl)->toBe(Connection::get('facade-oauth')->for($user)->connectUrl())
+            ->and($exception->connection)->toBe('facade-oauth');
     }
 });

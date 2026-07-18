@@ -11,12 +11,13 @@ final class NotConnectedException extends RuntimeException
     public function __construct(
         string $message,
         public readonly string $connectUrl,
+        public readonly string $connection,
     ) {
         parent::__construct($message);
     }
 
     public static function forName(string $name, string $connectUrl): self
     {
-        return new self("Connection [{$name}] is not connected. Visit the connect url to authorize it.", $connectUrl);
+        return new self("Connection [{$name}] is not connected. Visit the connect url to authorize it.", $connectUrl, $name);
     }
 }

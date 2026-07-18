@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Geoffrey\Channels\Slack\ProcessSlackEvent;
+use Geoffrey\Connections\Exceptions\NotConnectedException;
 use Geoffrey\Models\User;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Config\Repository as ConfigRepository;
@@ -33,9 +34,9 @@ function makeSlackAgentResponse(string $text, ?string $conversationId = null): A
     return $response;
 }
 
-function makeSlackOrchestrator(AgentResponse $response): Agent
+function makeSlackOrchestrator(AgentResponse $response, ?Throwable $throws = null): Agent
 {
-    return new class($response) implements Agent
+    return new class($response, $throws) implements Agent
     {
         public bool $forUserCalled = false;
 
@@ -49,7 +50,7 @@ function makeSlackOrchestrator(AgentResponse $response): Agent
 
         public ?string $promptText = null;
 
-        public function __construct(private readonly AgentResponse $agentResponse) {}
+        public function __construct(private readonly AgentResponse $agentResponse, private readonly ?Throwable $throws = null) {}
 
         public function forUser(object $user): static
         {
@@ -76,6 +77,10 @@ function makeSlackOrchestrator(AgentResponse $response): Agent
         public function prompt(string $prompt, array $attachments = [], Lab|array|string|null $provider = null, ?string $model = null, ?int $timeout = null): AgentResponse
         {
             $this->promptText = $prompt;
+
+            if ($this->throws instanceof Throwable) {
+                throw $this->throws;
+            }
 
             return $this->agentResponse;
         }
@@ -307,4 +312,189 @@ it('replies in the thread using thread_ts or the original message ts', function 
 
 it('implements ShouldQueue interface', function (): void {
     expect(ProcessSlackEvent::class)->toImplement(ShouldQueue::class);
+});
+
+it('replies with the connect url when the orchestrator raises a not connected exception', function (): void {
+    $agentResponse = makeSlackAgentResponse('Unused', 'conv-123');
+    $notConnected = NotConnectedException::forName('clickup', 'https://example.test/connections/clickup/connect?token=abc');
+    $orchestrator = makeSlackOrchestrator($agentResponse, $notConnected);
+
+    $http = new HttpFactory;
+    $http->fake([
+        'https://slack.com/api/chat.postMessage' => HttpFactory::response(['ok' => true]),
+    ]);
+
+    $container = makeSlackContainer($orchestrator, $http);
+    Container::setInstance($container);
+
+    $event = [
+        'user' => 'U12345',
+        'text' => 'Hello bot',
+        'channel' => 'C67890',
+        'ts' => '1234567890.123456',
+    ];
+
+    $job = new ProcessSlackEvent('my-workspace', $event);
+    $job->handle();
+
+    $http->assertSent(function (HttpRequest $request): bool {
+        $body = $request->data();
+
+        return $request->url() === 'https://slack.com/api/chat.postMessage'
+            && str_contains($body['text'], 'https://example.test/connections/clickup/connect?token=abc');
+    });
+});
+
+it('formats the connect prompt as a slack link with the connection name', function (): void {
+    $agentResponse = makeSlackAgentResponse('Unused', 'conv-123');
+    $notConnected = NotConnectedException::forName('clickup', 'https://example.test/connections/clickup/connect?token=abc');
+    $orchestrator = makeSlackOrchestrator($agentResponse, $notConnected);
+
+    $http = new HttpFactory;
+    $http->fake([
+        'https://slack.com/api/chat.postMessage' => HttpFactory::response(['ok' => true]),
+    ]);
+
+    $container = makeSlackContainer($orchestrator, $http);
+    Container::setInstance($container);
+
+    $event = [
+        'user' => 'U12345',
+        'text' => 'Hello bot',
+        'channel' => 'C67890',
+        'ts' => '1234567890.123456',
+    ];
+
+    $job = new ProcessSlackEvent('my-workspace', $event);
+    $job->handle();
+
+    $http->assertSent(function (HttpRequest $request): bool {
+        $body = $request->data();
+
+        return $request->url() === 'https://slack.com/api/chat.postMessage'
+            && $body['text'] === 'Before I can help with that, you need to connect your clickup account: <https://example.test/connections/clickup/connect?token=abc|Connect clickup>';
+    });
+});
+
+it('replies in the originating thread when the event is threaded', function (): void {
+    $agentResponse = makeSlackAgentResponse('Unused', 'conv-123');
+    $notConnected = NotConnectedException::forName('clickup', 'https://example.test/connections/clickup/connect?token=abc');
+    $orchestrator = makeSlackOrchestrator($agentResponse, $notConnected);
+
+    $http = new HttpFactory;
+    $http->fake([
+        'https://slack.com/api/chat.postMessage' => HttpFactory::response(['ok' => true]),
+    ]);
+
+    $container = makeSlackContainer($orchestrator, $http);
+    Container::setInstance($container);
+
+    $event = [
+        'user' => 'U12345',
+        'text' => 'Hello bot',
+        'channel' => 'C67890',
+        'ts' => '1234567890.123456',
+        'thread_ts' => '1111111111.111111',
+    ];
+
+    $job = new ProcessSlackEvent('my-workspace', $event);
+    $job->handle();
+
+    $http->assertSent(function (HttpRequest $request): bool {
+        $body = $request->data();
+
+        return $request->url() === 'https://slack.com/api/chat.postMessage'
+            && isset($body['thread_ts'])
+            && $body['thread_ts'] === '1111111111.111111';
+    });
+});
+
+it('replies to the message timestamp when the event is not threaded', function (): void {
+    $agentResponse = makeSlackAgentResponse('Unused', 'conv-123');
+    $notConnected = NotConnectedException::forName('clickup', 'https://example.test/connections/clickup/connect?token=abc');
+    $orchestrator = makeSlackOrchestrator($agentResponse, $notConnected);
+
+    $http = new HttpFactory;
+    $http->fake([
+        'https://slack.com/api/chat.postMessage' => HttpFactory::response(['ok' => true]),
+    ]);
+
+    $container = makeSlackContainer($orchestrator, $http);
+    Container::setInstance($container);
+
+    $event = [
+        'user' => 'U12345',
+        'text' => 'Hello bot',
+        'channel' => 'C67890',
+        'ts' => '1234567890.123456',
+    ];
+
+    $job = new ProcessSlackEvent('my-workspace', $event);
+    $job->handle();
+
+    $http->assertSent(function (HttpRequest $request): bool {
+        $body = $request->data();
+
+        return $request->url() === 'https://slack.com/api/chat.postMessage'
+            && isset($body['thread_ts'])
+            && $body['thread_ts'] === '1234567890.123456';
+    });
+});
+
+it('does not send a normal agent response when the connect prompt is sent', function (): void {
+    $agentResponse = makeSlackAgentResponse('My response', 'conv-123');
+    $notConnected = NotConnectedException::forName('clickup', 'https://example.test/connections/clickup/connect?token=abc');
+    $orchestrator = makeSlackOrchestrator($agentResponse, $notConnected);
+
+    $http = new HttpFactory;
+    $http->fake([
+        'https://slack.com/api/chat.postMessage' => HttpFactory::response(['ok' => true]),
+    ]);
+
+    $container = makeSlackContainer($orchestrator, $http);
+    Container::setInstance($container);
+
+    $event = [
+        'user' => 'U12345',
+        'text' => 'Hello bot',
+        'channel' => 'C67890',
+        'ts' => '1234567890.123456',
+    ];
+
+    $job = new ProcessSlackEvent('my-workspace', $event);
+    $job->handle();
+
+    $http->assertSentCount(1);
+    $http->assertSent(function (HttpRequest $request): bool {
+        $body = $request->data();
+
+        return $request->url() === 'https://slack.com/api/chat.postMessage'
+            && $body['text'] === 'Before I can help with that, you need to connect your clickup account: <https://example.test/connections/clickup/connect?token=abc|Connect clickup>';
+    });
+});
+
+it('lets other exceptions from the orchestrator propagate', function (): void {
+    $agentResponse = makeSlackAgentResponse('Unused', 'conv-123');
+    $orchestrator = makeSlackOrchestrator($agentResponse, new RuntimeException('boom'));
+
+    $http = new HttpFactory;
+    $http->fake([
+        'https://slack.com/api/chat.postMessage' => HttpFactory::response(['ok' => true]),
+    ]);
+
+    $container = makeSlackContainer($orchestrator, $http);
+    Container::setInstance($container);
+
+    $event = [
+        'user' => 'U12345',
+        'text' => 'Hello bot',
+        'channel' => 'C67890',
+        'ts' => '1234567890.123456',
+    ];
+
+    $job = new ProcessSlackEvent('my-workspace', $event);
+
+    expect(fn () => $job->handle())->toThrow(RuntimeException::class);
+
+    $http->assertNothingSent();
 });
