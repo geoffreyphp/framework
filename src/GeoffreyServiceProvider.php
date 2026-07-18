@@ -6,6 +6,10 @@ namespace Geoffrey;
 
 use Geoffrey\Channels\ChannelManager;
 use Geoffrey\Channels\Slack\Slack;
+use Geoffrey\Connections\ConnectionContext;
+use Geoffrey\Connections\ConnectionDefinition;
+use Geoffrey\Connections\ConnectionManager;
+use Geoffrey\Connections\ConnectionTokenStore;
 use Geoffrey\Database\Console\MigrateCommand;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -23,6 +27,22 @@ class GeoffreyServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(ChannelManager::class);
+
+        $this->app->scoped(ConnectionContext::class);
+
+        $this->app->singleton(ConnectionTokenStore::class);
+
+        $this->app->singleton(ConnectionManager::class, function (): ConnectionManager {
+            $context = $this->app->make(ConnectionContext::class);
+            $tokenStore = $this->app->make(ConnectionTokenStore::class);
+
+            return new ConnectionManager(
+                fn (ConnectionDefinition $definition): string => $tokenStore->retrieve(
+                    $definition,
+                    $context->user($definition->name),
+                ) ?? '',
+            );
+        });
 
         $this->app->extend(BaseMigrateCommand::class, fn (): MigrateCommand => new MigrateCommand($this->app['migrator'], $this->app[Dispatcher::class]));
 
@@ -52,6 +72,7 @@ class GeoffreyServiceProvider extends ServiceProvider
         }
 
         $this->bootChannels();
+        $this->bootConnections();
     }
 
     protected function bootChannels(): void
@@ -63,5 +84,16 @@ class GeoffreyServiceProvider extends ServiceProvider
         $channels = $config->get('geoffrey.channels', []);
 
         $this->app->make(ChannelManager::class)->boot($channels);
+    }
+
+    protected function bootConnections(): void
+    {
+        /** @var Repository $config */
+        $config = $this->app->make('config');
+
+        /** @var array<int, class-string> $connections */
+        $connections = $config->get('geoffrey.connections', []);
+
+        $this->app->make(ConnectionManager::class)->boot($connections);
     }
 }

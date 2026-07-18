@@ -2,9 +2,12 @@
     "preset": "base",
     "ignore": {
         "words": [
+            "mcp",
+            "memoized",
             "orchestrator",
             "php",
-            "prelimenary"
+            "prelimenary",
+            "testbench"
         ]
     }
 }

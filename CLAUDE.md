@@ -1,6 +1,6 @@
 # Geoffrey Framework
 
-AI agent framework. Provides bootstrap, routing, contracts, base agent, first-party channels, conversation/identity layer, and the service provider that wires it all together. The consuming app supplies config and agent classes; the framework handles everything else.
+AI agent framework. Provides bootstrap, routing, contracts, first-party channels, conversation/identity layer, an MCP connections layer, and the service provider that wires it all together. The consuming app supplies config and agent classes; the framework handles everything else.
 
 ## Tech Stack
 
@@ -13,10 +13,13 @@ AI agent framework. Provides bootstrap, routing, contracts, base agent, first-pa
 ## Project Structure
 
 - `src/` — Framework source (`Geoffrey\` namespace)
-  - `Contracts/` — Interfaces (Channel, HasSkills)
+  - `Contracts/` — Interfaces (`Channel`)
   - `Channels/` — First-party channel implementations (Slack, etc.)
-- `config/geoffrey.php` — Config schema (orchestrator, channels)
-- `database/migrations/` — Conversation table migration
+  - `Connections/` — MCP connections layer (attributes, manager, token store/refresh, OAuth HTTP handling)
+  - `Connection.php` — Public API (`Connection::get('name')`)
+  - `Models/` — Eloquent models (`User`, `ConnectionToken`)
+- `config/geoffrey.php` — Config schema (orchestrator, channels, connections)
+- `database/migrations/` — Conversation and connection-token table migrations
 - `tests/` — Pest tests (`Tests\` namespace)
 
 ## Commands
@@ -57,7 +60,8 @@ composer test:type-coverage
 - The framework is channel-agnostic; orchestrator never knows about channels
 - Channels are self-contained: each bundles routes, controller, API client, verification
 - Driver/Manager pattern for channel resolution from config
-- Program to contracts/interfaces — `Channel`, `HasSkills`
+- Program to contracts/interfaces — `Channel`, `TokenRefresher`
+- Connections are explicitly registered FQCNs in `config('geoffrey.connections')`, declared via attributes (`#[ConnectionName]`, `#[ConnectionUrl]`, `#[WithOauth]`, `#[WithToken]`, `#[Shared]`), never filesystem-scanned
 
 ## Detailed Configuration
 

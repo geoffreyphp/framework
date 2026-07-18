@@ -57,6 +57,11 @@ it('loads migrations from the package migrations directory', function (): void {
             // no-op - no app available in this test
         }
 
+        protected function bootConnections(): void
+        {
+            // no-op - no app available in this test
+        }
+
         public function boot(): void
         {
             parent::boot();

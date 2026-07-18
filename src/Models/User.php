@@ -7,6 +7,8 @@ namespace Geoffrey\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
+ * @property-read int $id
+ *
  * @method static static firstOrCreate(array<string, mixed> $attributes = [], array<string, mixed> $values = [])
  */
 class User extends Model
